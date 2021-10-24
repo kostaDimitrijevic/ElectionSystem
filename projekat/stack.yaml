@@ -1,0 +1,98 @@
+version: '3'
+
+services:
+  authenticationDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - dataauthenticationdb:/var/lib/mysql
+    networks:
+      - authenticationnet
+    ports:
+      - 3306:3306
+  authenticationDBMigration:
+    image: authenticationdbmigration
+    environment:
+      - DATABASE_URL=authenticationDB
+    networks:
+    - authenticationnet
+  authentication:
+    image: authentication
+    environment:
+      - DATABASE_URL=authenticationDB
+    ports:
+      - 5002:5002
+    networks:
+      - authenticationnet
+  electionDB:
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - 3307:3306
+    volumes:
+      - dataelectiondb:/var/lib/mysql
+    networks:
+      - adminnet
+      - dameonnet
+  electionDBMigration:
+    image: electiondbmigration
+    environment:
+      - DATABASE_URL=electionDB
+    networks:
+      - adminnet
+  admin:
+    image: admin
+    environment:
+      - DATABASE_URL=electionDB
+      - TZ=Europe/Belgrade
+    ports:
+      - 5001:5001
+    networks:
+      - adminnet
+  dameon:
+    image: dameon
+    environment:
+      - DATABASE_URL=electionDB
+      - TZ=Europe/Belgrade
+    networks:
+      - dameonnet
+  voting:
+    image: voting
+    environment:
+      - DATABASE_URL=electionDB
+    ports:
+      - 5003:5003
+    networks:
+      - votingnet
+    deploy:
+      replicas: 3
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    networks:
+      - authenticationnet
+      - adminnet
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - votingnet
+      - dameonnet
+
+volumes:
+    dataelectiondb:
+    dataauthenticationdb:
+
+networks:
+    authenticationnet:
+      driver: overlay
+    votingnet:
+      driver: overlay
+    adminnet:
+      driver: overlay
+    dameonnet:
+      driver: overlay
